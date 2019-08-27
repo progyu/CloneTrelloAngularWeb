@@ -1,3 +1,7 @@
+FastCampus Hackertone
+
+사용기술 : Angular8
+
 # CloneTrlloAngularWeb
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.0.2.
