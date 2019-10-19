@@ -41,29 +41,13 @@ export class TrelloComponent implements OnInit {
     this.getLists();
   }
 
-  getBgColor() {
-    this.http
-      .get(this.appUrl + 'backgroundcolors/1')
-      .subscribe(backColor =>
-        this.renderer.setStyle(
-          document.body,
-          'background-color',
-          backColor['background_color']
-        )
-      );
+  getBgColor(): void {
+    this.renderer.setStyle(document.body, 'background-color', '#0079BF');
   }
 
-  changeBgColor(color: BgColors) {
+  changeBgColor(color: BgColors): void {
     this.colorBoolean = !this.colorBoolean;
-    this.http
-      .patch(this.appUrl + 'backgroundcolors/1', { background_color: color })
-      .subscribe(backColor =>
-        this.renderer.setStyle(
-          document.body,
-          'background-color',
-          backColor['background_color']
-        )
-      );
+    this.renderer.setStyle(document.body, 'background-color', color);
   }
 
   horizontalDrop(event: CdkDragDrop<string[]>) {
