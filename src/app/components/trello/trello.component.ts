@@ -1,17 +1,14 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
-import { BgColors } from 'src/app/core/type/bg-color';
-import {
-  CdkDragDrop,
-  moveItemInArray,
-  transferArrayItem
-} from '@angular/cdk/drag-drop';
-import { MatSnackBar } from '@angular/material/snack-bar';
+
+import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { DialogContentComponent } from '../dialog-content/dialog-content.component';
 
-import { List, Card } from 'src/app/core/interface/list.interface';
-import { CardService } from 'src/app/core/service/card.service';
+import { CardService } from '../../core/service/card.service';
+import { List, Card } from '../../core/interface/list.interface';
+import { BgColors } from '../../core/type/bg-color';
 
 @Component({
   selector: 'app-trello',

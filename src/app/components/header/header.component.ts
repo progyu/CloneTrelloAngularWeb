@@ -1,5 +1,6 @@
 import { Component, OnInit, Renderer2, Input, Output, EventEmitter } from '@angular/core';
-import { BgColors } from 'src/app/core/type/bg-color';
+import { BgColors } from '../../core/type/bg-color';
+// import { BgColors } from 'src/app/core/type/bg-color';
 
 @Component({
   selector: 'app-header',
