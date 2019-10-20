@@ -1,6 +1,5 @@
 import { Component, OnInit, Renderer2 } from '@angular/core';
 import { BgColors } from 'src/app/core/type/bg-color';
-import { HttpClient } from '@angular/common/http';
 import {
   CdkDragDrop,
   moveItemInArray,
@@ -9,11 +8,10 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 
-import { environment } from 'src/environments/environment';
-
 import { DialogContentComponent } from '../dialog-content/dialog-content.component';
 
 import { List, Card } from 'src/app/core/interface/list.interface';
+import { CardService } from 'src/app/core/service/card.service';
 
 @Component({
   selector: 'app-trello',
@@ -21,24 +19,122 @@ import { List, Card } from 'src/app/core/interface/list.interface';
   styleUrls: ['./trello.component.css']
 })
 export class TrelloComponent implements OnInit {
-  appUrl: string = environment.appUrl;
-  lists: List[];
+  lists: List[] = [
+    {
+      id: 0,
+      title: '노트',
+      listSort: 0,
+      cards: [
+        {
+          title: 0,
+          id: 0,
+          cardTitle: '담당자 인수 인계',
+          description: 'todo1-1',
+          comments: [
+            {
+              id: 0,
+              comment: 'todo1-1',
+              card: 0,
+            }
+          ],
+          cardSort: 0,
+        },
+        {
+          title: 1,
+          id: 1,
+          cardTitle: '가이드 라인',
+          description: 'todo1-2',
+          comments: [
+            {
+              id: 0,
+              comment: 'todo1-2',
+              card: 0,
+            }
+          ],
+          cardSort: 1,
+        },
+      ],
+    },
+    {
+      id: 1,
+      title: 'To do',
+      listSort: 1,
+      cards: [
+        {
+          title: 0,
+          id: 0,
+          cardTitle: '코드 리뷰',
+          description: 'todo2-1',
+          comments: [
+            {
+              id: 0,
+              comment: 'todo2',
+              card: 0,
+            }
+          ],
+          cardSort: 0,
+        },
+      ],
+    },
+    {
+      id: 2,
+      title: 'Doing',
+      listSort: 2,
+      cards: [
+        {
+          title: 0,
+          id: 0,
+          cardTitle: '카드 모달',
+          description: 'todo2-1',
+          comments: [
+            {
+              id: 0,
+              comment: 'todo2',
+              card: 0,
+            }
+          ],
+          cardSort: 0,
+        },
+      ],
+    },
+    {
+      id: 3,
+      title: 'Done',
+      listSort: 3,
+      cards: [
+        {
+          title: 0,
+          id: 0,
+          cardTitle: '디자인 가이드 완성',
+          description: 'todo2-1',
+          comments: [
+            {
+              id: 0,
+              comment: 'todo2',
+              card: 0,
+            }
+          ],
+          cardSort: 0,
+        },
+      ],
+    },
+  ];
   colorBoolean = false;
   colors: BgColors[] = ['#0079BF', '#D29034', '#4BBF6B', '#B03642'];
-  addListOpen = true;
+  addListOpen = false;
+  addCardOpen = -1;
   verticalContainerHeight = 0;
   verticalBoxHeight = 0;
 
   constructor(
     private renderer: Renderer2,
-    private http: HttpClient,
+    public cardService: CardService,
     public dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {
     this.getBgColor();
-    this.getLists();
   }
 
   getBgColor(): void {
@@ -50,21 +146,91 @@ export class TrelloComponent implements OnInit {
     this.renderer.setStyle(document.body, 'background-color', color);
   }
 
+  generateListId(): number {
+    return this.lists.length
+      ? Math.max(...this.lists.map(({ id }) => id)) + 1
+      : 0;
+  }
+
+  addList(input: HTMLInputElement): any {
+    if (!input.value.trim()) { return; }
+    this.lists = [...this.lists, {
+      id: this.generateListId(),
+      title: input.value.trim(),
+      listSort: this.generateListSort(),
+      cards: [],
+    }];
+    input.value = '';
+  }
+
+  generateListSort(): number {
+    return this.lists.length
+      ? Math.max(...this.lists.map(({ listSort }) => listSort)) + 1
+      : 0;
+  }
+
+  getConnectedList(): any[] {
+    return this.lists.map(x => `${x.id}`);
+  }
+
+  removeList(listId: number): any {
+    this.lists = this.lists.filter(({ id }) => listId !== id);
+    console.log(this.lists);
+  }
+
   horizontalDrop(event: CdkDragDrop<string[]>) {
     moveItemInArray(this.lists, event.previousIndex, event.currentIndex);
-    this.lists = this.lists.map((list, listSort) => {
-      if (list.listSort !== listSort) {
-        this.http
-          .patch(`${this.appUrl}title/${list.id}/`, {
-            listSort
-          })
-          .subscribe();
+    this.lists = this.lists.map((list, listSort) => ({ ...list, listSort }));
+    console.log(this.lists);
+  }
+
+  generateCardId(cards: Card[]): number {
+    return cards.length ? Math.max(...cards.map(({ id }) => id)) + 1 : 0;
+  }
+
+  generateCardSort(cards: Card[]): number {
+    return cards.length ? Math.max(...cards.map(({ cardSort }) => cardSort)) + 1 : 0;
+  }
+
+  addCardTitle(cardInput: HTMLTextAreaElement): any {
+    const value = cardInput.value.trim();
+    if (!value) { return; }
+    let newCardSort = 0;
+
+    this.lists.forEach(list => {
+      if (+cardInput.id === list.id) {
+        newCardSort = list.cards.length ? Math.max(...list.cards.map(({ cardSort }) => cardSort)) + 1 : 0;
       }
-      return { ...list, listSort };
+    });
+
+    this.lists = this.lists.map(list => {
+      if (+cardInput.id === list.id) {
+        return { ...list, cards: [...list.cards, {
+          title: +cardInput.id,
+          id: this.generateCardId(list.cards),
+          cardTitle: value,
+          description: '',
+          comments: [],
+          cardSort: this.generateCardSort(list.cards),
+        }]};
+      } else {
+        return list;
+      }
     });
   }
 
-  verticalDrop(event: CdkDragDrop<string[]>) {
+  removeCard(listId: number, removeCardId: number): any {
+    this.lists = this.lists.map(list => {
+      if (listId === list.id) {
+        const newCard = list.cards.filter(({ id }) => removeCardId !== id);
+        return { ...list, cards: [...newCard] };
+      } else {
+        return list;
+      }
+    });
+  }
+
+  verticalDrop(event: CdkDragDrop<string[]>): any {
     if (event.previousContainer === event.container) {
       moveItemInArray(
         event.container.data,
@@ -73,14 +239,7 @@ export class TrelloComponent implements OnInit {
       );
       this.lists = this.lists.map(list => {
         if (+event.container.id === list.id) {
-          const cards = list.cards.map((card, cardSort) => {
-            this.http
-              .patch(`${this.appUrl}card/${card.id}/`, {
-                cardSort
-              })
-              .subscribe();
-            return { ...card, cardSort };
-          });
+          const cards = list.cards.map((card, cardSort) => ({ ...card, cardSort }));
           return { ...list, cards };
         } else {
           return list;
@@ -95,25 +254,10 @@ export class TrelloComponent implements OnInit {
       );
       this.lists = this.lists.map(list => {
         if (+event.previousContainer.id === list.id) {
-          const cards = list.cards.map((card, cardSort) => {
-            this.http
-              .patch(`${this.appUrl}card/${card.id}/`, {
-                cardSort
-              })
-              .subscribe();
-            return { ...card, cardSort };
-          });
+          const cards = list.cards.map((card, cardSort) => ({ ...card, cardSort }));
           return { ...list, cards };
         } else if (+event.container.id === list.id) {
-          const cards = list.cards.map((card, cardSort) => {
-            this.http
-              .patch(`${this.appUrl}card/${card.id}/`, {
-                cardSort,
-                title: event.container.id
-              })
-              .subscribe();
-            return { ...card, cardSort };
-          });
+          const cards = list.cards.map((card, cardSort) => ({ ...card, cardSort }));
           return { ...list, cards };
         } else {
           return list;
@@ -122,81 +266,7 @@ export class TrelloComponent implements OnInit {
     }
   }
 
-  getLists() {
-    this.http
-      .get<List[]>('http://clonetrelloapi.jinukk.me/main/')
-      .subscribe(lists => (this.lists = lists));
-  }
-
-  getConnectedList(): any[] {
-    return this.lists.map(x => `${x.id}`);
-  }
-
-  generateListSort() {
-    return this.lists.length
-      ? Math.max(...this.lists.map(({ listSort }) => listSort)) + 1
-      : 0;
-  }
-
-  addList(input: HTMLInputElement) {
-    if (!input.value.trim()) {
-      return;
-    }
-    this.http
-      .post<List>(this.appUrl + 'title/', {
-        title: input.value.trim(),
-        listSort: this.generateListSort()
-      })
-      .subscribe(list => (this.lists = [...this.lists, list]));
-    input.value = '';
-  }
-
-  // List 삭제
-  removeList(listId: number) {
-    this.http.delete(this.appUrl + `title/${listId}/`).subscribe(() => this.lists = this.lists.filter(({ id }) => listId !== id));
-  }
-
-  // 카드 생성
-  addCardTitle(cardInput: HTMLTextAreaElement) {
-    const value = cardInput.value.trim();
-    if (!value) {
-      return;
-    }
-    let newCardSort = 0;
-    this.lists.forEach(list => {
-      if (+cardInput.id === list.id) {
-        newCardSort = list.cards.length ? Math.max(...list.cards.map(({ cardSort }) => cardSort)) + 1 : 0;
-      }
-    });
-    this.http.post(`${this.appUrl}card/`, {
-      title: +cardInput.id,
-      cardSort: newCardSort,
-      cardTitle: value
-    }).subscribe((card: Card) => {
-      this.lists = this.lists.map(list => {
-        if (+cardInput.id === list.id) {
-          return { ...list, cards: [ ...list.cards, card ]};
-        } else {
-          return list;
-        }
-      });
-    });
-  }
-
-  // 카드 삭제
-  removeCard(listId: number, removeCardId: number) {
-    const removeCard = this.lists = this.lists.map(list => {
-      if (listId === list.id) {
-        const newCard = list.cards.filter(({ id }) => removeCardId !== id);
-        return { ...list, cards: [...newCard] };
-      } else {
-        return list;
-      }
-    });
-    this.http.delete(`${this.appUrl}card/${removeCardId}/`).subscribe(() => removeCard);
-  }
-
-  removeSnackBar(listId: number, removeCardId: number, card = false) {
+  removeSnackBar(listId: number, removeCardId: number, card = false): any {
     const snackBarRef = this.snackBar.open(
       'Are you sure you want to delete?',
       'Delete',
@@ -214,7 +284,7 @@ export class TrelloComponent implements OnInit {
     });
   }
 
-  titleResize(textarea: HTMLTextAreaElement) {
+  titleResize(textarea: HTMLTextAreaElement): any {
     textarea.style.height = '1px';
     textarea.style.height = `${textarea.scrollHeight}px`;
   }
@@ -222,115 +292,34 @@ export class TrelloComponent implements OnInit {
   changeTitle(
     verticalListHeaderTarget: HTMLDivElement,
     textarea: HTMLTextAreaElement
-  ) {
+  ): any {
     verticalListHeaderTarget.classList.add('is-hidden');
     textarea.focus();
   }
 
-  changeTitleEnd(elem: HTMLTextAreaElement, block: HTMLDivElement) {
+
+  changeTitleEnd(elem: HTMLTextAreaElement, block: HTMLDivElement): any {
     const title = elem.value.trim();
-    if (!title) {
-      return;
-    }
+    if (!title) { return; }
     block.classList.remove('is-hidden');
-    this.http.patch<List>(`${this.appUrl}title/${elem.id}/`, {
-      title
-    }).subscribe(() => this.lists = this.lists.map(list => list.id === +elem.id ? { ...list, title } : list));
+    this.lists = this.lists.map(list => list.id === +elem.id ? { ...list, title } : list);
   }
 
-  verticalPlaceholderHeight(elem: HTMLDivElement) {
+  verticalPlaceholderHeight(elem: HTMLDivElement): void {
     this.verticalContainerHeight = elem.scrollHeight;
   }
 
-  boxPlaceholderHeight(elem: HTMLDivElement) {
+  boxPlaceholderHeight(elem: HTMLDivElement): void {
     this.verticalBoxHeight = elem.scrollHeight;
   }
 
-  showAddCard(
-    cardComposer: HTMLDivElement,
-    addCardBtn: HTMLAnchorElement,
-    textarea: HTMLTextAreaElement
-  ) {
-    cardComposer.classList.remove('is-hidden');
-    addCardBtn.classList.add('is-hidden');
-    textarea.focus();
-  }
+  openDialog(card: Card): void {
+    this.cardService.card = card;
 
-  hideAddCard(cardComposer: HTMLDivElement, addCardBtn: HTMLAnchorElement) {
-    cardComposer.classList.add('is-hidden');
-    addCardBtn.classList.remove('is-hidden');
-  }
-
-  getCard(cardId: number) {
-    // this.http.get(`${this.appUrl}card/${cardId}`).subscribe((card: Card) => {
-
-    this.openDialog(
-      // card.description,
-      // card.cardTitle,
-      cardId
-      // card.title,
-      // card.comments
-    );
-    // });
-  }
-
-  openDialog(
-    // description: string,
-    // title: string,
-    cardId: number
-    // listId,
-    // comments
-  ) {
     const dialogRef = this.dialog.open(DialogContentComponent, {
       height: '800px',
       width: '570px',
-      data: {
-        // content: description,
-        // title,
-        cardId
-        // listId,
-        // comment: comments
-      }
-    });
-
-    const sub = dialogRef.componentInstance.onAdd.subscribe((data: any) => {
-      this.lists = this.lists.map(item => {
-        if (item.id === data.listId) {
-          const cards = item.cards.map(item2 => {
-            if (item2.id === +data.id) {
-              return { ...item2, cardContent: data.cardContent };
-            } else {
-              return item2;
-            }
-          });
-          return { ...item, cards };
-        } else {
-          return item;
-        }
-      });
-    });
-
-    const adding = dialogRef.componentInstance.changeCardContent.subscribe(
-      (data: any) => {
-        this.lists = this.lists.map(item => {
-          if (item.id === data.listId) {
-            const cards = item.cards.map(item2 => {
-              if (item2.id === +data.id) {
-                return { ...item2, cardContent: data.descriptionInput };
-              } else {
-                return item2;
-              }
-            });
-            return { ...item, cards };
-          } else {
-            return item;
-          }
-        });
-      }
-    );
-
-    dialogRef.afterClosed().subscribe(() => {
-      this.getLists();
+      data: { card }
     });
   }
 }

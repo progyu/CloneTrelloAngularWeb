@@ -1,8 +1,5 @@
-import { Component, EventEmitter, Inject, OnInit } from '@angular/core';
+import { Component, EventEmitter, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { HttpClient } from '@angular/common/http';
-import { environment } from 'src/environments/environment';
-import { Card } from 'src/app/core/interface/list.interface';
 import { CardService } from 'src/app/core/service/card.service';
 
 @Component({
@@ -10,126 +7,68 @@ import { CardService } from 'src/app/core/service/card.service';
   templateUrl: './dialog-content.component.html',
   styleUrls: ['./dialog-content.component.css']
 })
-export class DialogContentComponent implements OnInit {
-  appUrl: string = environment.appUrl;
-  updateData = {};
-  updateData2 = {};
+export class DialogContentComponent {
   onAdd = new EventEmitter();
   changeCardContent = new EventEmitter();
 
   descriptionState = true;
-  valueTrue = false;
-  flag = 0;
+  flag = -1;
 
   constructor(
     public dialogRef: MatDialogRef<DialogContentComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { cardId: number },
-    private http: HttpClient,
     public cardService: CardService
   ) {}
 
-  ngOnInit() {
-    this.getCards();
+  // title 변경 및 저장
+  changeTitle(titleInput: HTMLInputElement): void {
+    if(!(titleInput.value.trim())) return;
+    this.cardService.card.cardTitle = titleInput.value;
+  }
+  
+  // Description input 변경
+  changeDescriptionState(description: HTMLTextAreaElement): void {
+    this.cardService.card.description = description.value;
+    this.descriptionState ? (this.descriptionState = false) : (this.descriptionState = true);
   }
 
-  getCards() {
-    this.http
-      .get(`${this.appUrl}card/${this.data.cardId}/`)
-      .subscribe((card: Card) => {
-        console.log(card);
-        this.cardService.card = { ...card, id: this.data.cardId };
-      });
+  // Description 변경 및 저장
+  clickDescriptionBtn(descriptionInput: HTMLTextAreaElement): void {
+    this.cardService.card.description = descriptionInput.value;
   }
 
-  onNoClick(): void {
-    this.dialogRef.close();
-  }
-
-  // sendData(
-  //   cardContent: HTMLInputElement,
-  //   inputComment: HTMLInputElement,
-  //   cardId,
-  //   wholeItem,
-  //   TodoID,
-  //   titleInput
-  // ) {
-  //   console.log(inputComment.value);
-  //   this.updateData = {
-  //     cardContent: cardContent.value,
-  //     commentContent: inputComment.value,
-  //     cardId: cardId.innerHTML,
-  //     Item: wholeItem,
-  //     TodosID: TodoID,
-  //     title: titleInput.value
-  //   };
-  //   this.onAdd.emit(this.updateData);
-  // }
-
-  changeDescriptionState() {
-    setTimeout(() => {
-      this.descriptionState
-        ? (this.descriptionState = false)
-        : (this.descriptionState = true);
-    }, 100);
-  }
-
-  changeContent(descriptionInput, cardID, wholeItem, TodoID) {
-    this.updateData2 = {
-      descriptionInput: descriptionInput.value,
-      cardId: cardID,
-      Item: wholeItem,
-      TodosID: TodoID
-    };
-    this.changeCardContent.emit(this.updateData2);
-  }
-
-  typing(inputComment) {
-    inputComment.value ? (this.valueTrue = true) : (this.valueTrue = false);
-  }
-
-  titleResize(textarea: HTMLTextAreaElement) {
+  // Description textarea 글 입력시 높이 조절
+  textareaResize(textarea: HTMLTextAreaElement): void {
     textarea.style.height = '1px';
     textarea.style.height = `${textarea.scrollHeight}px`;
   }
 
-  clickDescriptionBtn(descriptionInput: HTMLTextAreaElement, cardId: number) {
-    this.http
-      .patch(`${this.appUrl}card/${cardId}/`, {
-        description: descriptionInput.value
-      })
-      .subscribe(() => this.getCards());
+  // 코멘트 아이디 생성
+  get generateCommentId(): number {
+    return this.cardService.card.comments.length ? Math.max(...this.cardService.card.comments.map(({ id }) => id)) + 1 : 0;
   }
 
-  changeTitle(titleInput: HTMLInputElement, cardId: number) {
-    this.http
-      .patch(`${this.appUrl}card/${cardId}/`, {
-        cardTitle: titleInput.value
-      })
-      .subscribe(() => this.getCards());
-  }
-
-  addComment(inputComment: HTMLInputElement, cardId: number) {
-    this.http
-      .post(`${this.appUrl}comments/`, {
-        comment: inputComment.value,
-        card: cardId
-      })
-      .subscribe(() => this.getCards());
+  // 코멘트 추가
+  addComment(inputComment: HTMLInputElement): void {
+    this.cardService.card.comments = [...this.cardService.card.comments, {
+      id: this.generateCommentId,
+      comment: inputComment.value,
+      card: this.cardService.card.id
+     }];
     inputComment.value = '';
   }
 
-  activityEditSave(activityEdit: HTMLTextAreaElement, commentID: number) {
-    this.http
-      .patch(`${this.appUrl}comments/${commentID}/`, {
-        comment: activityEdit.value
-      })
-      .subscribe(() => this.getCards());
-    this.flag = 0;
+  // 코멘트 수정
+  EditComment(activityEdit: HTMLTextAreaElement, commentID: number) {
+    if (!activityEdit.value.trim()) return;
+    this.cardService.card.comments = this.cardService.card.comments.map(comment => {
+      return comment.id === commentID ? { ...comment, comment: activityEdit.value } : comment;
+    });
+    this.flag = -1;
   }
 
-  activityEditDelete(commentID: number) {
-    this.http
-      .delete(`${this.appUrl}comments/${commentID}/`)
-      .subscribe(() => this.getCards());
+  // 코멘트 삭제
+  deleteComment(commentID: number) {
+    this.cardService.card.comments = this.cardService.card.comments.filter(comment => comment.id !== commentID);
   }
 }

@@ -71,16 +71,14 @@ mat-dialog-content {
 .commentBtn {
   padding: 7px 13px;
   border-radius: 5px;
+  color: #fff;
+  background-color: #5aac44;
   border: none;
   margin-bottom: 20px;
 }
 
-.commentBtnAct {
-  padding: 7px 13px;
-  border-radius: 5px;
-  border: none;
-  background-color: #5aac44;
-  color: #fff;
+.commentBtn:disabled {
+  opacity: .6;
 }
 
 .descriptionBtnHidden {
